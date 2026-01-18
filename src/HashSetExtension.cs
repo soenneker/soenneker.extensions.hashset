@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Soenneker.Extensions.HashSet;
 
@@ -8,50 +11,52 @@ namespace Soenneker.Extensions.HashSet;
 public static class HashSetExtension
 {
     /// <summary>
-    /// Iterates the <see cref="IEnumerable{T}"/> adds the items one by one to the hashset
+    /// Adds all items from <paramref name="items"/> into <paramref name="set"/>.
+    /// Uses fast paths for common collection types and pre-grows capacity when the item count is known.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddRange<T>(this HashSet<T> set, IEnumerable<T> items)
     {
-        // If items is a known-count collection, pre-grow the HashSet to minimize resizing.
-        if (items is ICollection<T> collection)
+        ArgumentNullException.ThrowIfNull(set);
+        ArgumentNullException.ThrowIfNull(items);
+
+        // Avoid "Collection was modified" if someone passes the same set instance.
+        if (ReferenceEquals(set, items))
+            return;
+
+        // Fast paths first (also lets us avoid enumerator allocations on older runtimes)
+        if (items is T[] array)
         {
-            int neededCapacity = set.Count + collection.Count;
-            set.EnsureCapacity(neededCapacity);
-
-            // Specialized path for T[] to avoid enumerator overhead.
-            if (items is T[] array)
-            {
-                for (var i = 0; i < array.Length; i++)
-                {
-                    set.Add(array[i]);
-                }
+            if (array.Length == 0)
                 return;
-            }
 
-            // Specialized path for List<T>.
-            if (items is List<T> list)
-            {
-                int count = list.Count;
-                for (var i = 0; i < count; i++)
-                {
-                    set.Add(list[i]);
-                }
-                return;
-            }
+            set.EnsureCapacity(set.Count + array.Length);
 
-            // Fallback for other ICollection<T> types.
-            foreach (T item in collection)
-            {
-                set.Add(item);
-            }
+            for (int i = 0; i < array.Length; i++)
+                set.Add(array[i]);
+
+            return;
         }
-        else
+
+        if (items is List<T> list)
         {
-            // Fallback if items is an enumerable without a known count.
-            foreach (T item in items)
-            {
-                set.Add(item);
-            }
+            int count = list.Count;
+            if (count == 0)
+                return;
+
+            set.EnsureCapacity(set.Count + count);
+
+            for (int i = 0; i < count; i++)
+                set.Add(list[i]);
+
+            return;
         }
+
+        // Pre-grow if we can get a count without enumerating
+        if (items.TryGetNonEnumeratedCount(out int addCount) && addCount > 0)
+            set.EnsureCapacity(set.Count + addCount);
+
+        foreach (T item in items)
+            set.Add(item);
     }
 }
