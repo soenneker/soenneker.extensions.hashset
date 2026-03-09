@@ -1,1 +1,11 @@
-Standby...
+S
+[![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.extensions.hashset/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/soenneker/soenneker.extensions.hashset/actions/workflows/codeql.yml)
+t
+a
+n
+d
+b
+y
+.
+.
+.
