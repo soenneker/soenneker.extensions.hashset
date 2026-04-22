@@ -1,11 +1,10 @@
 using Soenneker.Tests.Unit;
-using Xunit;
 
 namespace Soenneker.Extensions.HashSet.Tests;
 
 public class HashSetExtensionTests : UnitTest
 {
-    [Fact]
+    [Test]
     public void Default()
     {
 
